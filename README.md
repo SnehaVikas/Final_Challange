@@ -1,91 +1,95 @@
-# LearnMate AI
+# SkillPath AI
 
 ## Problem Statement
-Traditional learning methods often follow a one-size-fits-all approach, leaving many learners frustrated by content that is either too complex or too basic for their current level. LearnMate AI solves this by creating an intelligent assistant that helps users learn new concepts effectively, personalizing content based on user pace, level, and preferred learning style.
+Traditional education often follows a static, linear approach that fails to account for individual differences in prior knowledge, learning pace, and conceptual gaps. This leads to frustration for learners who are either overwhelmed or under-challenged. **SkillPath AI** solves this by creating an intelligent assistant that helps users learn new concepts effectively through a completely personalized and adaptive journey.
 
 ## Chosen Vertical
-Education / Personalized Learning
+**Education / Personalized Learning**
 
 ## Solution Overview
-LearnMate AI leverages the power of Google's Gemini 1.5 Flash to provide a tailored learning experience:
-- **User Input**: Captures the concept to learn, current expertise level, preferred pace, and learning style.
-- **Personalized Lesson**: Gemini generates a custom micro-lesson with explanations, analogies, and key points specifically designed for the user.
-- **Interactive Quiz**: An AI-generated 3-question quiz tests the user's understanding immediately after the lesson.
-- **Adaptive Evaluation**: Gemini evaluates quiz answers and provides encouraging feedback with a recommended next step (Revise, Practice, or Advance).
-- **Demo Mode**: Includes a fallback mechanism that ensures a smooth experience even if API limits are reached.
-
-## Key Features
-- **Personalized learning**: Content tailored to your unique profile.
-- **Adaptive quiz**: Questions that match the lesson complexity.
-- **Understanding evaluation**: Real-time feedback on your performance.
-- **Next-step recommendation**: Clear guidance on what to do next.
-- **Demo fallback mode**: Continuous availability for testing and presentation.
+SkillPath AI is an adaptive learning coach that guides users through a complete mastery cycle. The system:
+1. **Diagnoses** current understanding via AI-driven probing questions.
+2. **Generates** a personalized lesson tailored to the learner's specific profile and identified gaps.
+3. **Quizzes** the learner to verify understanding.
+4. **Evaluates** performance with detailed feedback on strengths and weak areas.
+5. **Maps** a future learning path with specific roadmap steps.
+6. **Extends** learning with curated YouTube resources.
+7. **Schedules** momentum with integrated Google Calendar reminders.
 
 ## Google Services Used
-- **Gemini API**: Used as the core reasoning engine for lesson generation, quiz creation, and performance evaluation.
+- **Gemini API (2.5 Flash)**: The core reasoning engine for diagnostics, lesson generation, quiz creation, performance evaluation, and learning path mapping.
+- **Google Cloud Firestore**: Persistently stores learning sessions and progress history for anonymous learners.
+- **YouTube Data API**: Curates targeted educational resources based on specific learner gaps.
+- **Google Calendar (Smart URL Integration)**: A clever, lightweight integration that uses pre-filled Template URLs. This avoids the overhead of OAuth while providing a seamless user experience—a perfect "hackathon trick" for reliability and speed.
+- **Google Cloud Run**: Provides a scalable, containerized production environment for the application.
 
-## How It Works
-1. **Setup**: User enters their learning preferences.
-2. **Gemini Lesson**: The app sends a structured prompt to Gemini to generate a JSON-formatted lesson.
-3. **Quiz**: User takes the generated quiz.
-4. **Gemini Evaluation**: The app sends the user's answers back to Gemini for evaluation.
-5. **Adaptive Feedback**: User receives a score and a personalized recommendation for their next learning step.
+## Key Features
+- **Personalized Learner Profile**: Customizes the journey based on level, pace, and learning style.
+- **AI-Driven Diagnosis**: A probing question-and-answer stage to find your starting point.
+- **Adaptive Coaching**: Lessons that use analogies and examples tailored to your preferences.
+- **Mastery Verification**: 5-question AI-generated quizzes that test conceptual understanding.
+- **Visual Learning Path**: A roadmap showing where you've been and the next 3 topics to master.
+- **Progress History**: Persistent dashboard showing recent learning stats and history.
+- **Smart Resource Matching**: Videos targeted at your specific weak areas.
+- **One-Click Scheduling**: Deep-linked study reminders for your calendar.
+- **Demo Fallback Mode**: A robust simulation mode that allows testing the full UI journey even if API keys are missing.
 
-## Setup Instructions
+## Architecture
+The application follows a clean, modular architecture:
+- **React UI**: Responsive dashboard built with modern CSS and modular components.
+- **Service Layer**: A decoupled layer for AI (Gemini), Persistence (Firestore), and External APIs (YouTube/Calendar).
+- **Adaptive State Machine**: A central `App.jsx` controller that manages the complex transitions between learning phases.
+
+## Environment Variables
+Create a `.env` file with the following variables:
+```env
+VITE_GEMINI_API_KEY=your_gemini_key
+VITE_FIREBASE_API_KEY=your_firebase_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+VITE_YOUTUBE_API_KEY=your_youtube_key
+```
+
+## Local Setup
 1. Clone the repository.
 2. Install dependencies:
    ```bash
    npm install
    ```
-3. Create a `.env` file based on `.env.example`:
-   ```bash
-   cp .env.example .env
-   ```
-4. Add your Gemini API key to the `.env` file.
-5. Run the development server:
+3. Configure your `.env` file.
+4. Start the development server:
    ```bash
    npm run dev
    ```
 
-## Environment Variable
-```env
-VITE_GEMINI_API_KEY=your_key_here
+## Cloud Run Deployment
+Deploy the containerized application to Google Cloud Run:
+```bash
+gcloud run deploy skillpath-ai --source . --region asia-south1 --allow-unauthenticated
 ```
 
-## Deployment (Cloud Run)
-To deploy this application to Google Cloud Run:
-
-1. **Install Google Cloud CLI**: Download and install from [cloud.google.com/sdk](https://cloud.google.com/sdk).
-2. **Login**: 
-   ```bash
-   gcloud auth login
-   ```
-3. **Set project**: 
-   ```bash
-   gcloud config set project YOUR_PROJECT_ID
-   ```
-4. **Deploy**:
-   ```bash
-   gcloud run deploy learnmate-ai --source . --region asia-south1 --allow-unauthenticated
-   ```
-5. Once complete, the command will return a **public URL** where your app is live!
-
 ## Assumptions
-- **Focused Learning**: The app is designed for learning one concept at a time for maximum focus.
-- **Quick Assessment**: A 3-question quiz is assumed to be a sufficient initial check for micro-learning sessions.
+- The application uses anonymous tracking via `localStorage` and Firestore for privacy-first persistence.
+- Learning is focused on one concept at a time to ensure micro-mastery.
+- YouTube and Calendar integrations are optional and fail gracefully if keys are missing.
 
 ## Testing
-- **Flow Validation**: Test the end-to-end flow from form submission to feedback.
-- **Fallback Verification**: Disconnect the API key to verify that "Demo Mode" triggers correctly.
+- **End-to-End**: Verified the flow from setup to scheduling in both "Gemini" and "Demo" modes.
+- **Responsive**: Tested on mobile, tablet, and desktop viewports.
+- **Resilience**: Verified that the app remains functional even with invalid API keys or network interruptions.
 
-## Security
-- **Secure Keys**: API keys are managed via environment variables.
-- **Protection**: The `.env` file is included in `.gitignore` to prevent accidental commits to public repositories.
+## Security Notes
+- API keys are handled via Vite environment variables and are never hardcoded in the source.
+- Production builds use a multi-stage Docker build to ensure a minimal attack surface.
+- Anonymous IDs are used to avoid handling PII (Personally Identifiable Information).
 
 ## Future Scope
-- **Firestore Integration**: Persist learning history and progress across sessions.
-- **YouTube API**: Automatically suggest relevant videos based on the concept.
-- **User Accounts**: Personalized profiles with cumulative learning stats.
+- **Interactive Tutoring**: Real-time AI chat during the lesson phase.
+- **PDF Analysis**: Allowing users to upload their own study materials for AI to summarize and quiz on.
+- **Peer Pathways**: Sharing successful AI-generated learning paths with a community.
 
 ---
 Built for the Google Gemini Hackathon 🚀
