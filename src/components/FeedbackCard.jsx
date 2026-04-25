@@ -1,7 +1,7 @@
 import React from 'react';
 
 const FeedbackCard = ({ results, preferences, onRestart }) => {
-  const { score, total, understandingLevel, strengths, gaps, feedbackText, recommendedNextStep, nextActionType } = results;
+  const { score, total, understandingLevel, strengths, weakAreas, feedback, recommendedNextStep, nextActionType } = results;
   const percentage = (score / total) * 100;
 
   const getStatusLabel = () => {
@@ -47,17 +47,17 @@ const FeedbackCard = ({ results, preferences, onRestart }) => {
           </ul>
         </div>
         <div style={{ background: '#fff7ed', padding: '1.5rem', borderRadius: '12px', border: '1px solid #ffedd5' }}>
-          <h3 style={{ color: '#9a3412', fontSize: '1.1rem', marginBottom: '0.75rem' }}>🔍 Gaps</h3>
+          <h3 style={{ color: '#9a3412', fontSize: '1.1rem', marginBottom: '0.75rem' }}>🔍 Weak Areas</h3>
           <ul style={{ paddingLeft: '1.25rem', color: '#7c2d12', fontSize: '0.95rem' }}>
-            {gaps.map((g, i) => <li key={i} style={{ marginBottom: '0.25rem' }}>{g}</li>)}
+            {weakAreas.map((w, i) => <li key={i} style={{ marginBottom: '0.25rem' }}>{w}</li>)}
           </ul>
         </div>
       </div>
 
       <div style={{ marginBottom: '2rem' }}>
-        <h3 style={{ marginBottom: '0.75rem' }}>Expert Feedback</h3>
+        <h3 style={{ marginBottom: '0.75rem' }}>AI Performance Review</h3>
         <p style={{ color: 'var(--text-main)', lineHeight: 1.6, background: '#f8fafc', padding: '1.5rem', borderRadius: '12px' }}>
-          {feedbackText}
+          {feedback}
         </p>
       </div>
 

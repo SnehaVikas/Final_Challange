@@ -17,6 +17,13 @@ const LessonCard = ({ lesson, preferences, onNext }) => {
         <span className="badge badge-success">Lesson Active</span>
       </div>
       
+      <div className="lesson-section" style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', borderLeft: '4px solid var(--accent)', marginBottom: '2rem' }}>
+        <p style={{ fontWeight: 700, color: 'var(--accent)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          💡 Practical Example
+        </p>
+        <p style={{ fontStyle: 'italic', color: 'var(--text-main)' }}>{lesson.miniExample}</p>
+      </div>
+      
       <div className="lesson-content">
         <section style={{ marginBottom: '2rem' }}>
           <h3 style={{ color: 'var(--primary)', marginBottom: '0.75rem' }}>Personalized Explanation</h3>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const LearnerForm = ({ onSubmit }) => {
+const LearnerProfileForm = ({ onSubmit }) => {
   const [formData, setFormData] = useState({
     concept: '',
     level: 'Beginner',
@@ -21,27 +21,26 @@ const LearnerForm = ({ onSubmit }) => {
 
   return (
     <div className="card animate-in">
-      <h2>Learning Setup</h2>
-      <p className="subtitle">Customize your AI-powered learning journey.</p>
+      <h2>Start Your Learning Path</h2>
+      <p className="subtitle">SkillPath AI will craft a personalized journey for you.</p>
       
       <form onSubmit={handleSubmit} style={{ marginTop: '1.5rem' }}>
         <div className="form-group">
-          <label htmlFor="concept">Concept to learn</label>
+          <label htmlFor="concept">What do you want to master?</label>
           <input
             type="text"
             id="concept"
             name="concept"
-            placeholder="e.g. Quantum Computing, React Hooks"
+            placeholder="e.g. Deep Learning, French Cooking, React Hooks"
             value={formData.concept}
             onChange={handleChange}
             required
-            aria-required="true"
           />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <div className="form-group">
-            <label htmlFor="level">Current Level</label>
+            <label htmlFor="level">Experience Level</label>
             <select id="level" name="level" value={formData.level} onChange={handleChange}>
               <option value="Beginner">Beginner</option>
               <option value="Intermediate">Intermediate</option>
@@ -49,11 +48,11 @@ const LearnerForm = ({ onSubmit }) => {
             </select>
           </div>
           <div className="form-group">
-            <label htmlFor="pace">Learning Pace</label>
+            <label htmlFor="pace">Preferred Pace</label>
             <select id="pace" name="pace" value={formData.pace} onChange={handleChange}>
-              <option value="Slow">Slow</option>
-              <option value="Normal">Normal</option>
-              <option value="Fast">Fast</option>
+              <option value="Slow">Slow & Deep</option>
+              <option value="Normal">Balanced</option>
+              <option value="Fast">Fast Track</option>
             </select>
           </div>
         </div>
@@ -61,28 +60,28 @@ const LearnerForm = ({ onSubmit }) => {
         <div className="form-group">
           <label htmlFor="style">Learning Style</label>
           <select id="style" name="style" value={formData.style} onChange={handleChange}>
-            <option value="Simple explanation">Simple explanation</option>
-            <option value="Example-based">Example-based</option>
-            <option value="Step-by-step">Step-by-step</option>
+            <option value="Simple explanation">Clear & Conceptual</option>
+            <option value="Example-based">Practical & Real-world</option>
+            <option value="Step-by-step">Structured & Analytical</option>
           </select>
         </div>
 
         <div className="form-group">
-          <label htmlFor="goal">Learning Goal (Optional)</label>
+          <label htmlFor="goal">Your Learning Goal</label>
           <textarea
             id="goal"
             name="goal"
-            placeholder="What do you want to achieve?"
+            placeholder="e.g. Build a quantum computer, Pass my exam, Just curious"
             rows="2"
             value={formData.goal}
             onChange={handleChange}
           ></textarea>
         </div>
 
-        <button type="submit">Generate Lesson</button>
+        <button type="submit">Initialize SkillPath</button>
       </form>
     </div>
   );
 };
 
-export default LearnerForm;
+export default LearnerProfileForm;

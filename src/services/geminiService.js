@@ -1,51 +1,18 @@
 /**
- * Gemini Service to handle AI requests using fetch API.
- * This keeps the bundle size minimal.
+ * Gemini Service for SkillPath AI
+ * Handles all AI generations using Google's Gemini 1.5 Flash.
  */
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
-
-/**
- * Static Fallback Data for Demo Mode
- */
-const MOCK_LESSON = (concept) => ({
-  conceptTitle: concept || "Sample Topic",
-  personalizedExplanation: "This is a demo lesson. In a live environment, Gemini would generate a detailed explanation tailored to your level and style. For now, understand that most complex systems are built from simple, repeatable patterns.",
-  analogy: "It's like building with LEGO bricks - small, simple pieces combine to create something amazing.",
-  keyPoints: [
-    "Simplicity is the foundation of complexity.",
-    "Patterns allow for scalability and growth.",
-    "Consistency ensures reliability across the system."
-  ],
-  commonMistake: "Over-complicating the initial design instead of focusing on core principles.",
-  quiz: [
-    { id: 1, question: "What is the foundation of complexity in this demo?", options: ["Luck", "Simplicity", "Heavy machinery", "Infinite resources"], correctAnswer: "Simplicity" },
-    { id: 2, question: "What do patterns allow for?", options: ["Confusion", "Slower progress", "Scalability and growth", "System failure"], correctAnswer: "Scalability and growth" },
-    { id: 3, question: "What is the common mistake mentioned?", options: ["Using too many colors", "Over-complicating initial design", "Focusing on core principles", "Building too fast"], correctAnswer: "Over-complicating initial design" }
-  ]
-});
-
-const MOCK_FEEDBACK = {
-  score: 3,
-  total: 3,
-  understandingLevel: "Excellent (Demo Mode)",
-  strengths: ["Fast learner", "Great attention to detail"],
-  gaps: ["None identified in this demo"],
-  feedback: "Great job! You've mastered the demo lesson. In the live version, this feedback would be uniquely crafted based on your specific quiz performance.",
-  recommendedNextStep: "Try connecting your real Gemini API key to see dynamic content generation.",
-  nextActionType: "advance"
-};
-
-export const getDemoLesson = (concept) => MOCK_LESSON(concept);
-export const getDemoFeedback = () => MOCK_FEEDBACK;
+const GEMINI_MODEL = "gemini-2.5-flash";
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${API_KEY}`;
 
 /**
  * Utility to clean and parse JSON from Gemini's response
  */
 const parseGeminiJson = (text) => {
   try {
-    // Remove markdown code fences if present
+    // Remove markdown code fences if present (e.g., ```json ... ```)
     const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
     return JSON.parse(cleaned);
   } catch (error) {
@@ -55,70 +22,12 @@ const parseGeminiJson = (text) => {
 };
 
 /**
- * Generates a personalized lesson and quiz
+ * Core fetch wrapper for Gemini API
  */
-export const generateLesson = async (learnerProfile) => {
-  if (!API_KEY || API_KEY === 'your_api_key_here') {
-    throw new Error("Missing Gemini API Key. Please check your .env file.");
+const callGemini = async (prompt, temperature = 0.7) => {
+  if (!API_KEY || API_KEY === 'your_api_key_here' || API_KEY.includes('your_real_gemini_api_key')) {
+    throw new Error("Missing or invalid Gemini API Key. Please check your .env file.");
   }
-
-  const prompt = `
-You are LearnMate AI, a friendly and adaptive learning assistant.
-
-Create a personalized micro-lesson for the learner.
-
-Learner details:
-- Concept: ${learnerProfile.concept}
-- Current level: ${learnerProfile.level}
-- Preferred pace: ${learnerProfile.pace}
-- Learning style: ${learnerProfile.style}
-- Goal: ${learnerProfile.goal || 'General understanding'}
-
-Rules:
-- Keep the explanation suitable for the learner's level.
-- If pace is Slow, explain gently with simpler steps.
-- If pace is Fast, keep it concise and focused.
-- If learning style is Example-based, use a practical example.
-- If learning style is Step-by-step, break the explanation into ordered steps.
-- Include one real-world analogy.
-- Include exactly three key points.
-- Include one common mistake.
-- Generate exactly 3 multiple-choice quiz questions.
-- Each quiz question must have exactly 4 options.
-- The correctAnswer must exactly match one of the options.
-- Return only valid JSON.
-- Do not include markdown.
-- Do not include explanations outside JSON.
-
-JSON format:
-{
-  "conceptTitle": "",
-  "personalizedExplanation": "",
-  "analogy": "",
-  "keyPoints": ["", "", ""],
-  "commonMistake": "",
-  "quiz": [
-    {
-      "id": 1,
-      "question": "",
-      "options": ["", "", "", ""],
-      "correctAnswer": ""
-    },
-    {
-      "id": 2,
-      "question": "",
-      "options": ["", "", "", ""],
-      "correctAnswer": ""
-    },
-    {
-      "id": 3,
-      "question": "",
-      "options": ["", "", "", ""],
-      "correctAnswer": ""
-    }
-  ]
-}
-  `;
 
   try {
     const response = await fetch(API_URL, {
@@ -127,90 +36,274 @@ JSON format:
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature: 0.7,
+          temperature: temperature,
           response_mime_type: "application/json"
         }
       })
     });
 
-    if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const message = errorData.error?.message || response.statusText || "Unknown API Error";
+      throw new Error(`Gemini API Error: ${message}`);
+    }
 
     const data = await response.json();
-    const text = data.candidates[0].content.parts[0].text;
-    return parseGeminiJson(text);
+    if (!data.candidates || !data.candidates[0]?.content?.parts[0]?.text) {
+      throw new Error("Empty response from Gemini API.");
+    }
+
+    return data.candidates[0].content.parts[0].text;
   } catch (error) {
-    console.error("Lesson generation error:", error);
+    console.error("Gemini Call Error:", error);
     throw error;
   }
 };
 
 /**
- * Evaluates quiz results and provides adaptive feedback
+ * 1. Generates a diagnostic question based on the learner's profile
+ */
+export const generateDiagnostic = async (learnerProfile) => {
+  const prompt = `
+    You are SkillPath AI, an adaptive learning coach.
+
+    Create one diagnostic question to understand the learner's current knowledge.
+
+    Learner:
+    - Concept: ${learnerProfile.concept}
+    - Level: ${learnerProfile.level}
+    - Pace: ${learnerProfile.pace}
+    - Learning style: ${learnerProfile.style}
+    - Goal: ${learnerProfile.goal}
+
+    Rules:
+    - Ask only one question.
+    - Keep it appropriate for the learner level.
+    - Return only valid JSON.
+    - Do not include markdown.
+
+    JSON:
+    {
+      "diagnosticQuestion": "",
+      "expectedAnswer": "",
+      "difficulty": "beginner"
+    }
+  `;
+  const responseText = await callGemini(prompt, 0.5);
+  return parseGeminiJson(responseText);
+};
+
+/**
+ * 2. Evaluates the diagnostic answer
+ */
+export const evaluateDiagnostic = async ({ learnerProfile, diagnosticQuestion, userAnswer }) => {
+  const prompt = `
+    You are SkillPath AI, an adaptive learning evaluator.
+
+    Evaluate the learner's diagnostic answer.
+
+    Learner:
+    ${JSON.stringify(learnerProfile)}
+
+    Diagnostic:
+    ${diagnosticQuestion}
+
+    User answer:
+    ${userAnswer}
+
+    Rules:
+    - Score from 0 to 2.
+    - Identify likely gaps.
+    - Explain personalization strategy briefly.
+    - Return only valid JSON.
+
+    JSON:
+    {
+      "diagnosticScore": 0,
+      "startingLevel": "",
+      "identifiedGaps": ["", ""],
+      "personalizationStrategy": ""
+    }
+  `;
+  const responseText = await callGemini(prompt, 0.4);
+  return parseGeminiJson(responseText);
+};
+
+/**
+ * 3. Generates the personalized lesson
+ */
+export const generateLesson = async ({ learnerProfile, diagnosticEvaluation }) => {
+  const prompt = `
+    You are SkillPath AI, a friendly adaptive tutor.
+
+    Generate a personalized lesson.
+
+    Learner:
+    ${JSON.stringify(learnerProfile)}
+
+    Diagnostic evaluation:
+    ${JSON.stringify(diagnosticEvaluation)}
+
+    Rules:
+    - Adapt to learner level, pace, and learning style.
+    - Address identified gaps.
+    - Include simple explanation, analogy, key points, common mistake, and mini example.
+    - Return only valid JSON.
+
+    JSON:
+    {
+      "conceptTitle": "",
+      "personalizedExplanation": "",
+      "analogy": "",
+      "keyPoints": ["", "", ""],
+      "commonMistake": "",
+      "miniExample": ""
+    }
+  `;
+  const responseText = await callGemini(prompt, 0.7);
+  return parseGeminiJson(responseText);
+};
+
+/**
+ * 4. Generates a 5-question quiz
+ */
+export const generateQuiz = async ({ learnerProfile, lessonData }) => {
+  const prompt = `
+    You are SkillPath AI.
+
+    Generate a 5-question multiple-choice quiz for the lesson.
+
+    Learner:
+    ${JSON.stringify(learnerProfile)}
+
+    Lesson:
+    ${JSON.stringify(lessonData)}
+
+    Rules:
+    - Exactly 5 questions.
+    - Each question has exactly 4 options.
+    - correctAnswer must exactly match one option.
+    - Questions should test understanding, not memorization only.
+    - Return only valid JSON.
+
+    JSON:
+    {
+      "quiz": [
+        {
+          "id": 1,
+          "question": "",
+          "options": ["", "", "", ""],
+          "correctAnswer": ""
+        }
+      ]
+    }
+  `;
+  const responseText = await callGemini(prompt, 0.6);
+  return parseGeminiJson(responseText);
+};
+
+/**
+ * 5. Evaluates the quiz results
  */
 export const evaluateQuiz = async ({ learnerProfile, quiz, userAnswers }) => {
   const prompt = `
-You are LearnMate AI, an adaptive learning evaluator.
+    You are SkillPath AI, an adaptive learning evaluator.
 
-Evaluate the learner's quiz answers and decide the next learning step.
+    Evaluate the learner's quiz answers.
 
-Learner details:
-- Concept: ${learnerProfile.concept}
-- Level: ${learnerProfile.level}
-- Pace: ${learnerProfile.pace}
-- Learning style: ${learnerProfile.style}
+    Learner:
+    ${JSON.stringify(learnerProfile)}
 
-Quiz:
-${JSON.stringify(quiz)}
+    Quiz:
+    ${JSON.stringify(quiz)}
 
-User answers:
-${JSON.stringify(userAnswers)}
+    User answers:
+    ${JSON.stringify(userAnswers)}
 
-Rules:
-- Compare user answers with correct answers.
-- Calculate score out of 3.
-- Identify strengths and gaps.
-- Recommend next action:
-  - revise: if score is 0 or 1
-  - practice: if score is 2
-  - advance: if score is 3
-- Keep feedback encouraging, specific, and short.
-- Return only valid JSON.
-- Do not include markdown.
-- Do not include explanations outside JSON.
+    Rules:
+    - Calculate score out of 5.
+    - Identify strengths and weak areas.
+    - nextActionType must be:
+      - revise if score is 0, 1, or 2
+      - practice if score is 3 or 4
+      - advance if score is 5
+    - Return only valid JSON.
 
-JSON format:
-{
-  "score": 0,
-  "total": 3,
-  "understandingLevel": "",
-  "strengths": [""],
-  "gaps": [""],
-  "feedback": "",
-  "recommendedNextStep": "",
-  "nextActionType": "revise"
-}
+    JSON:
+    {
+      "score": 0,
+      "total": 5,
+      "understandingLevel": "",
+      "strengths": ["", ""],
+      "weakAreas": ["", ""],
+      "feedback": "",
+      "nextActionType": "revise",
+      "recommendedNextStep": ""
+    }
   `;
-
-  try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.3,
-          response_mime_type: "application/json"
-        }
-      })
-    });
-
-    if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
-
-    const data = await response.json();
-    const text = data.candidates[0].content.parts[0].text;
-    return parseGeminiJson(text);
-  } catch (error) {
-    console.error("Evaluation error:", error);
-    throw error;
-  }
+  const responseText = await callGemini(prompt, 0.3);
+  return parseGeminiJson(responseText);
 };
+
+/**
+ * 6. Generates the final learning path
+ */
+export const generateLearningPath = async ({ learnerProfile, feedback }) => {
+  const prompt = `
+    You are SkillPath AI, a personalized study planner.
+
+    Create a short learning path based on the learner's performance.
+
+    Learner:
+    ${JSON.stringify(learnerProfile)}
+
+    Feedback:
+    ${JSON.stringify(feedback)}
+
+    Rules:
+    - Recommend exactly 3 next topics.
+    - Include one practice task.
+    - Include one study strategy.
+    - Include confidence level.
+    - Return only valid JSON.
+
+    JSON:
+    {
+      "nextTopics": ["", "", ""],
+      "practiceTask": "",
+      "studyStrategy": "",
+      "confidenceLevel": "",
+      "summary": ""
+    }
+  `;
+  const responseText = await callGemini(prompt, 0.5);
+  return parseGeminiJson(responseText);
+};
+
+// Fallback Mock data for Demo Mode
+export const getDemoLesson = (concept) => ({
+  conceptTitle: concept || "Quantum Entanglement",
+  personalizedExplanation: "Particles connected regardless of distance.",
+  analogy: "Magic dice.",
+  keyPoints: ["Point 1", "Point 2", "Point 3"],
+  commonMistake: "Mistake info.",
+  miniExample: "Photon example.",
+  quiz: [] // Should populate 5 items in real demo
+});
+
+export const getDemoFeedback = () => ({
+  score: 5,
+  total: 5,
+  understandingLevel: "Advanced",
+  strengths: ["Logic"],
+  weakAreas: ["None"],
+  feedback: "Great job!",
+  recommendedNextStep: "Next topic.",
+  nextActionType: "advance"
+});
+
+export const getMockDiagnostic = (concept) => ({
+  diagnosticQuestion: `To help me tailor your ${concept} lesson, tell me: What is your current understanding of its core principle?`,
+  expectedAnswer: "General understanding of the concept.",
+  difficulty: "intermediate"
+});
