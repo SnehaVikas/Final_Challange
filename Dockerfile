@@ -11,7 +11,6 @@ RUN npm ci
 COPY . .
 
 # Build the application
-# We use --emptyOutDir to ensure a clean build
 RUN npm run build
 
 # Stage 2: Serve the application with Nginx
@@ -23,8 +22,12 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # Copy the custom Nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
+# Copy the entrypoint script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 # Expose port 8080 as required by Cloud Run
 EXPOSE 8080
 
-# Start Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Use the entrypoint script to inject env vars at runtime
+ENTRYPOINT ["/docker-entrypoint.sh"]

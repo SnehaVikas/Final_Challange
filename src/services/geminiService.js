@@ -3,7 +3,9 @@
  * Handles all AI generations using Google's Gemini 1.5 Flash.
  */
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+import { getEnv } from '../utils/env';
+
+const API_KEY = getEnv('VITE_GEMINI_API_KEY');
 const GEMINI_MODEL = "gemini-2.5-flash";
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${API_KEY}`;
 
@@ -25,7 +27,7 @@ const parseGeminiJson = (text) => {
  * Core fetch wrapper for Gemini API
  */
 const callGemini = async (prompt, temperature = 0.7) => {
-  if (!API_KEY || API_KEY === 'your_api_key_here' || API_KEY.includes('your_real_gemini_api_key')) {
+  if (!API_KEY || API_KEY === 'your_gemini_api_key_here' || API_KEY === 'your_api_key_here' || API_KEY.includes('your_real_gemini_api_key')) {
     throw new Error("Missing or invalid Gemini API Key. Please check your .env file.");
   }
 

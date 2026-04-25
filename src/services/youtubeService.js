@@ -2,8 +2,9 @@
  * YouTube Service for SkillPath AI
  * Fetches relevant educational videos using YouTube Data API v3.
  */
+import { getEnv } from '../utils/env';
 
-const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+const API_KEY = getEnv('VITE_YOUTUBE_API_KEY');
 const BASE_URL = "https://www.googleapis.com/youtube/v3/search";
 
 /**
